@@ -76,6 +76,8 @@ type MachineSetReconciler struct {
 }
 
 func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) for MachineSetReconciler")
 	clusterToMachineSets, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -107,12 +109,13 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
 	r.restConfig = mgr.GetConfig()
+	log.Info("TrackerLog: Finished SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) for MachineSetReconciler")
 	return nil
 }
 
 func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile(ctx context.Context, req ctrl.Request) for MachineSetReconciler")
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -159,12 +162,14 @@ func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		log.Error(err, "Failed to reconcile MachineSet")
 		r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
+	log.Info("TrackerLog: Finished Reconcile(ctx context.Context, req ctrl.Request) for MachineSetReconciler")
 	return result, err
 }
 
 func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineSet")
+	log.Info("TrackerLog: Calling reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) for MachineSetReconciler")
 
 	// Reconcile and retrieve the Cluster object.
 	if machineSet.Labels == nil {
@@ -303,13 +308,14 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 		log.V(4).Info("Some nodes are not ready yet, requeuing until they are ready")
 		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
-
+	log.Info("TrackerLog: Finished reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) for MachineSetReconciler")
 	return ctrl.Result{}, nil
 }
 
 // syncReplicas scales Machine resources up or down.
 func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) for MachineSetReconciler")
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
@@ -421,13 +427,15 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 		}
 		return r.waitForMachineDeletion(ctx, machinesToDelete)
 	}
-
+	log.Info("TrackerLog: Finished syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) for MachineSetReconciler")
 	return nil
 }
 
 // getNewMachine creates a new Machine object. The name of the newly created resource is going
 // to be created by the API server, we set the generateName field.
 func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
+	log := ctrl.LoggerFrom(context.Background())
+	log.Info("TrackerLog: Calling getNewMachine(machineSet *clusterv1.MachineSet) for MachineSetReconciler")
 	gv := clusterv1.GroupVersion
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -447,6 +455,7 @@ func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *
 	if machine.Labels == nil {
 		machine.Labels = make(map[string]string)
 	}
+	log.Info("TrackerLog: Finished getNewMachine(machineSet *clusterv1.MachineSet) for MachineSetReconciler")
 	return machine
 }
 
@@ -469,7 +478,7 @@ func (r *MachineSetReconciler) adoptOrphan(ctx context.Context, machineSet *clus
 
 func (r *MachineSetReconciler) waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) for MachineSetReconciler")
 	for i := 0; i < len(machineList); i++ {
 		machine := machineList[i]
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
@@ -489,13 +498,13 @@ func (r *MachineSetReconciler) waitForMachineCreation(ctx context.Context, machi
 			return errors.Wrap(pollErr, "failed waiting for machine object to be created")
 		}
 	}
-
+	log.Info("TrackerLog: Finished waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) for MachineSetReconciler")
 	return nil
 }
 
 func (r *MachineSetReconciler) waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) for MachineSetReconciler")
 	for i := 0; i < len(machineList); i++ {
 		machine := machineList[i]
 		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
@@ -513,6 +522,7 @@ func (r *MachineSetReconciler) waitForMachineDeletion(ctx context.Context, machi
 			return errors.Wrap(pollErr, "failed waiting for machine object to be deleted")
 		}
 	}
+	log.Info("TrackerLog: Finished waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) for MachineSetReconciler")
 	return nil
 }
 
@@ -583,6 +593,7 @@ func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
 func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) for MachineSetReconciler")
 	newStatus := ms.Status.DeepCopy()
 
 	// Copy label selector to its status counterpart in string format.
@@ -667,6 +678,8 @@ func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clus
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileExternalTemplateReference(ctx context.Context, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) for MachineSetReconciler")
 	if !strings.HasSuffix(ref.Kind, external.TemplateSuffix) {
 		return nil
 	}
@@ -691,6 +704,6 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, re
 		Name:       cluster.Name,
 		UID:        cluster.UID,
 	}))
-
+	log.Info("TrackerLog: Finished reconcileExternalTemplateReference(ctx context.Context, c client.Client, restConfig *rest.Config, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) for MachineSetReconciler")
 	return patchHelper.Patch(ctx, obj)
 }

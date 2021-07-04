@@ -47,6 +47,7 @@ type getNodeReferencesResult struct {
 
 func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log.Info("TrackerLog: Calling reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	// Check that the MachinePool hasn't been deleted or in the process.
 	if !mp.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
@@ -133,6 +134,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	// At this point, the required number of replicas are ready
 	conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
+	log.Info("TrackerLog: Finished reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	return ctrl.Result{}, nil
 }
 
@@ -141,6 +143,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 // removing its ProviderID from the slice.
 func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
+	log.Info("TrackerLog: Calling deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string)  for MachinePoolReconciler")
 	nodeRefsMap := make(map[string]*corev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
@@ -170,12 +173,13 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 			return errors.Wrapf(err, "failed to delete Node")
 		}
 	}
+	log.Info("TrackerLog: Finished deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string)  for MachinePoolReconciler")
 	return nil
 }
 
 func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
-
+	log.Info("TrackerLog: Calling getNodeReferences(ctx context.Context, c client.Client, providerIDList []string)  for MachinePoolReconciler")
 	var ready, available int
 	nodeRefsMap := make(map[string]corev1.Node)
 	nodeList := corev1.NodeList{}
@@ -223,6 +227,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 	if len(nodeRefs) == 0 {
 		return getNodeReferencesResult{}, errNoAvailableNodes
 	}
+	log.Info("TrackerLog: Finished getNodeReferences(ctx context.Context, c client.Client, providerIDList []string)  for MachinePoolReconciler")
 	return getNodeReferencesResult{nodeRefs, available, ready}, nil
 }
 

@@ -74,6 +74,8 @@ type ClusterReconciler struct {
 }
 
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager for ClusterReconciler")
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
@@ -93,12 +95,13 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,
 	}
+	log.Info("TrackerLog: Finished SetupWithManager for ClusterReconciler")
 	return nil
 }
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile (ctx context.Context, req ctrl.Request) for ClusterReconciler")
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -151,7 +154,9 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster)
+	x,y := r.reconcile(ctx, cluster)
+	log.Info("TrackerLog: Finished Reconcile (ctx context.Context, req ctrl.Request) for ClusterReconciler")
+	return x,y
 }
 
 func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clusterv1.Cluster, options ...patch.Option) error {
@@ -178,6 +183,8 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 
 // reconcile handles cluster reconciliation.
 func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling Reconcile (ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	phases := []func(context.Context, *clusterv1.Cluster) (ctrl.Result, error){
 		r.reconcileInfrastructure,
 		r.reconcileControlPlane,
@@ -198,13 +205,14 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
+	log.Info("TrackerLog: Finished Reconcile (ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return res, kerrors.NewAggregate(errs)
 }
 
 // reconcileDelete handles cluster deletion.
 func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {
 		log.Error(err, "Failed to list descendants")
@@ -312,6 +320,7 @@ func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	}
 
 	controllerutil.RemoveFinalizer(cluster, clusterv1.ClusterFinalizer)
+	log.Info("TrackerLog: Finished reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return ctrl.Result{}, nil
 }
 
@@ -453,7 +462,7 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 
 func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
 	// reconcileControlPlane instead).
 	if cluster.Spec.ControlPlaneRef != nil {
@@ -482,7 +491,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 	}
 
 	conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.MissingNodeRefReason, clusterv1.ConditionSeverityInfo, "Waiting for the first control plane machine to have its status.nodeRef set")
-
+	log.Info("TrackerLog: Finished reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return ctrl.Result{}, nil
 }
 

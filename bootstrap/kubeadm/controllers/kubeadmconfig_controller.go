@@ -87,6 +87,8 @@ type Scope struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, option controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager for KubeadmConfigReconciler")
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.LoggerFrom(ctx).WithName("init-locker"), mgr.GetClient())
 	}
@@ -123,14 +125,14 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	if err != nil {
 		return errors.Wrap(err, "failed adding Watch for Clusters to controller manager")
 	}
-
+	log.Info("TrackerLog: Finished SetupWithManager for KubeadmConfigReconciler")
 	return nil
 }
 
 // Reconcile handles KubeadmConfig events.
 func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile for KubeadmConfigReconciler")
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
 	if err := r.Client.Get(ctx, req.NamespacedName, config); err != nil {
@@ -265,6 +267,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return r.joinControlplane(ctx, scope)
 	}
 
+	log.Info("TrackerLog: Finished Reconcile for KubeadmConfigReconciler")
 	// It's a worker join
 	return r.joinWorker(ctx, scope)
 }

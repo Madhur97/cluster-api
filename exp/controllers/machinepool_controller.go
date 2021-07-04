@@ -68,6 +68,8 @@ type MachinePoolReconciler struct {
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for MachinePoolReconciler")
 	clusterToMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &expv1.MachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -94,12 +96,13 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinepool-controller")
 	r.config = mgr.GetConfig()
+	log.Info("TrackerLog: Finished SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for MachinePoolReconciler")
 	return nil
 }
 
 func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile(ctx context.Context, req ctrl.Request)  for MachinePoolReconciler")
 	mp := &expv1.MachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, mp); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -180,10 +183,14 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, mp)
+	x,y := r.reconcile(ctx, cluster, mp)
+	log.Info("TrackerLog: Finished Reconcile(ctx context.Context, req ctrl.Request)  for MachinePoolReconciler")
+	return x,y
 }
 
 func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	// Ensure the MachinePool is owned by the Cluster it belongs to.
 	mp.OwnerReferences = util.EnsureOwnerRef(mp.OwnerReferences, metav1.OwnerReference{
 		APIVersion: cluster.APIVersion,
@@ -212,10 +219,13 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
+	log.Info("TrackerLog: Finished reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	return res, kerrors.NewAggregate(errs)
 }
 
 func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	if ok, err := r.reconcileDeleteExternal(ctx, mp); !ok || err != nil {
 		// Return early and don't remove the finalizer if we got an error or
 		// the external reconciliation deletion isn't ready.
@@ -228,10 +238,13 @@ func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *cl
 	}
 
 	controllerutil.RemoveFinalizer(mp, expv1.MachinePoolFinalizer)
+	log.Info("TrackerLog: Finished reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	return ctrl.Result{}, nil
 }
 
 func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool)  for MachinePoolReconciler")
 	if len(machinepool.Status.NodeRefs) == 0 {
 		return nil
 	}
@@ -241,11 +254,15 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return err
 	}
 
-	return r.deleteRetiredNodes(ctx, clusterClient, machinepool.Status.NodeRefs, machinepool.Spec.ProviderIDList)
+	x := r.deleteRetiredNodes(ctx, clusterClient, machinepool.Status.NodeRefs, machinepool.Spec.ProviderIDList)
+	log.Info("TrackerLog: Finished reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool)  for MachinePoolReconciler")
+	return x
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool)  for MachinePoolReconciler")
 	objects := []*unstructured.Unstructured{}
 	references := []*corev1.ObjectReference{
 		m.Spec.Template.Spec.Bootstrap.ConfigRef,
@@ -276,7 +293,7 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *
 				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
 		}
 	}
-
+	log.Info("TrackerLog: Finished reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool)  for MachinePoolReconciler")
 	// Return true if there are no more external objects.
 	return len(objects) == 0, nil
 }

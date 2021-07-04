@@ -69,6 +69,8 @@ type KubeadmControlPlaneReconciler struct {
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for KubeadmControlPlaneReconciler")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
@@ -101,13 +103,13 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	if r.managementClusterUncached == nil {
 		r.managementClusterUncached = &internal.Management{Client: mgr.GetAPIReader()}
 	}
-
+	log.Info("TrackerLog: Finished SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for KubeadmControlPlaneReconciler")
 	return nil
 }
 
 func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile(ctx context.Context, req ctrl.Request)  for KubeadmControlPlaneReconciler")
 	// Fetch the KubeadmControlPlane instance.
 	kcp := &controlplanev1.KubeadmControlPlane{}
 	if err := r.Client.Get(ctx, req.NamespacedName, kcp); err != nil {
@@ -196,7 +198,9 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, kcp)
+	x,y := r.reconcile(ctx, cluster, kcp)
+	log.Info("TrackerLog: Finished Reconcile(ctx context.Context, req ctrl.Request)  for KubeadmControlPlaneReconciler")
+	return x,y
 }
 
 func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {
@@ -233,7 +237,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (res ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 	log.Info("Reconcile KubeadmControlPlane")
-
+	log.Info("TrackerLog: Calling reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane)  for KubeadmControlPlaneReconciler")
 	// Make sure to reconcile the external infrastructure reference.
 	if err := r.reconcileExternalReference(ctx, cluster, &kcp.Spec.MachineTemplate.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
@@ -381,7 +385,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	if err := workloadCluster.UpdateCoreDNS(ctx, kcp, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
 	}
-
+	log.Info("TrackerLog: Finished reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane)  for KubeadmControlPlaneReconciler")
 	return ctrl.Result{}, nil
 }
 
@@ -390,6 +394,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log.Info("TrackerLog: Calling reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane)  for KubeadmControlPlaneReconciler")
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
 	// Gets all machines, not just control plane machines.
@@ -456,6 +461,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 		return ctrl.Result{}, err
 	}
 	conditions.MarkFalse(kcp, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	log.Info("TrackerLog: Finished reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane)  for KubeadmControlPlaneReconciler")
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 
@@ -480,6 +486,8 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Ob
 func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	// If the cluster is not yet initialized, there is no way to connect to the workload cluster and fetch information
 	// for updating conditions. Return early.
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileControlPlaneConditions(ctx context.Context, controlPlane *internal.ControlPlane)  for KubeadmControlPlaneReconciler")
 	if !controlPlane.KCP.Status.Initialized {
 		return ctrl.Result{}, nil
 	}
@@ -497,7 +505,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 	if err := controlPlane.PatchMachines(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-
+	log.Info("TrackerLog: Finished reconcileControlPlaneConditions(ctx context.Context, controlPlane *internal.ControlPlane)  for KubeadmControlPlaneReconciler")
 	// KCP will be patched at the end of Reconcile to reflect updated conditions, so we can return now.
 	return ctrl.Result{}, nil
 }
@@ -508,7 +516,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
 func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", controlPlane.Cluster.Name)
-
+	log.Info("TrackerLog: Calling reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane)  for KubeadmControlPlaneReconciler")
 	// If etcd is not managed by KCP this is a no-op.
 	if !controlPlane.IsEtcdManaged() {
 		return ctrl.Result{}, nil
@@ -554,7 +562,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	if len(removedMembers) > 0 {
 		log.Info("Etcd members without nodes removed from the cluster", "members", removedMembers)
 	}
-
+	log.Info("TrackerLog: Finished reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane)  for KubeadmControlPlaneReconciler")
 	return ctrl.Result{}, nil
 }
 

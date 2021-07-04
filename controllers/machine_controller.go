@@ -85,6 +85,8 @@ type MachineReconciler struct {
 }
 
 func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) for MachineReconciler")
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -116,12 +118,13 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,
 	}
+	log.Info("TrackerLog: Finished SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) for MachineReconciler")
 	return nil
 }
 
 func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile(ctx context.Context, req ctrl.Request) for MachineReconciler")
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, m); err != nil {
@@ -185,7 +188,9 @@ func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, m)
+	x,y := r.reconcile(ctx, cluster, m)
+	log.Info("TrackerLog: Finished Reconcile(ctx context.Context, req ctrl.Request) for MachineReconciler")
+	return x,y
 }
 
 func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine, options ...patch.Option) error {
@@ -228,7 +233,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) for MachineReconciler")
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		if err := r.watchClusterNodes(ctx, cluster); err != nil {
 			log.Error(err, "error watching nodes on target cluster")
@@ -266,12 +271,13 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
+	log.Info("TrackerLog: Finished reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) for MachineReconciler")
 	return res, kerrors.NewAggregate(errs)
 }
 
 func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-
+	log.Info("TrackerLog: Calling reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) for MachineReconciler")
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil // nolint:ifshort
 	if err != nil {
@@ -373,6 +379,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	}
 
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
+	log.Info("TrackerLog: Finished reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) for MachineReconciler")
 	return ctrl.Result{}, nil
 }
 
@@ -469,7 +476,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 
 func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName)
-
+	log.Info("TrackerLog: Calling drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) for MachineReconciler")
 	restConfig, err := remote.RESTConfig(ctx, MachineControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
@@ -531,12 +538,13 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 	}
 
 	log.Info("Drain successful")
+	log.Info("TrackerLog: Finished drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) for MachineReconciler")
 	return ctrl.Result{}, nil
 }
 
 func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-
+	log.Info("TrackerLog: Calling deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) for MachineReconciler")
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
@@ -552,10 +560,13 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 	if err := remoteClient.Delete(ctx, node); err != nil {
 		return errors.Wrapf(err, "error deleting node %s", name)
 	}
+	log.Info("TrackerLog: Finished deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) for MachineReconciler")
 	return nil
 }
 
 func (r *MachineReconciler) reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) for MachineReconciler")
 	obj, err := r.reconcileDeleteExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
 		return false, err
@@ -572,10 +583,13 @@ func (r *MachineReconciler) reconcileDeleteBootstrap(ctx context.Context, m *clu
 		conditions.UnstructuredGetter(obj),
 		conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
 	)
+	log.Info("TrackerLog: Finished reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) for MachineReconciler")
 	return false, nil
 }
 
 func (r *MachineReconciler) reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) for MachineReconciler")
 	obj, err := r.reconcileDeleteExternal(ctx, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		return false, err
@@ -592,11 +606,14 @@ func (r *MachineReconciler) reconcileDeleteInfrastructure(ctx context.Context, m
 		conditions.UnstructuredGetter(obj),
 		conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
 	)
+	log.Info("TrackerLog: Finished reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) for MachineReconciler")
 	return false, nil
 }
 
 // reconcileDeleteExternal tries to delete external references.
 func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference)  for MachineReconciler")
 	if ref == nil {
 		return nil, nil
 	}
@@ -616,7 +633,7 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
 		}
 	}
-
+	log.Info("TrackerLog: Finished reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference)  for MachineReconciler")
 	// Return true if there are no more external objects.
 	return obj, nil
 }

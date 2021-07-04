@@ -91,7 +91,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
 func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference)  for MachinePoolReconciler")
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
@@ -160,14 +160,14 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
 	}
-
+	log.Info("TrackerLog: Finished reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference)  for MachinePoolReconciler")
 	return external.ReconcileOutput{Result: obj}, nil
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a MachinePool.
 func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-
+	log.Info("TrackerLog: Calling reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool)  for MachinePoolReconciler")
 	// Call generic external reconciler if we have an external reference.
 	var bootstrapConfig *unstructured.Unstructured
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
@@ -221,13 +221,14 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 
 	m.Spec.Template.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	m.Status.BootstrapReady = true
+	log.Info("TrackerLog: Finished reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool)  for MachinePoolReconciler")
 	return ctrl.Result{}, nil
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.
 func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-
+	log.Info("TrackerLog: Calling reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, mp, &mp.Spec.Template.Spec.InfrastructureRef)
 	if err != nil {
@@ -298,6 +299,6 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		mp.Status.AvailableReplicas = 0
 		mp.Status.UnavailableReplicas = mp.Status.Replicas
 	}
-
+	log.Info("TrackerLog: Finished reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool)  for MachinePoolReconciler")
 	return ctrl.Result{}, nil
 }

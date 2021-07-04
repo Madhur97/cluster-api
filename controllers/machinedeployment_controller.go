@@ -61,6 +61,8 @@ type MachineDeploymentReconciler struct {
 }
 
 func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for MachineDeploymentReconciler")
 	clusterToMachineDeployments, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -92,12 +94,13 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
 	r.restConfig = mgr.GetConfig()
+	log.Info("TrackerLog: Finished SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options)  for MachineDeploymentReconciler")
 	return nil
 }
 
 func (r *MachineDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling Reconcile(ctx context.Context, req ctrl.Request)  for MachineDeploymentReconciler")
 	// Fetch the MachineDeployment instance.
 	deployment := &clusterv1.MachineDeployment{}
 	if err := r.Client.Get(ctx, req.NamespacedName, deployment); err != nil {
@@ -145,11 +148,13 @@ func (r *MachineDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		log.Error(err, "Failed to reconcile MachineDeployment")
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
+	log.Info("TrackerLog: Finished Reconcile(ctx context.Context, req ctrl.Request)  for MachineDeploymentReconciler")
 	return result, err
 }
 
 func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment)  for MachineDeploymentReconciler")
 	log.V(4).Info("Reconcile MachineDeployment")
 
 	// Reconcile and retrieve the Cluster object.
@@ -209,14 +214,14 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *cl
 	if d.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
 		return ctrl.Result{}, r.rolloutOnDelete(ctx, d, msList)
 	}
-
+	log.Info("TrackerLog: Finished reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment)  for MachineDeploymentReconciler")
 	return ctrl.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
 func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment)  for MachineDeploymentReconciler")
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &clusterv1.MachineSetList{}
 	if err := r.Client.List(ctx, machineSets, client.InNamespace(d.Namespace)); err != nil {
@@ -261,7 +266,7 @@ func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(ctx context.Co
 
 		filtered = append(filtered, ms)
 	}
-
+	log.Info("TrackerLog: Finished getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment)  for MachineDeploymentReconciler")
 	return filtered, nil
 }
 
@@ -276,7 +281,7 @@ func (r *MachineDeploymentReconciler) adoptOrphan(ctx context.Context, deploymen
 // getMachineDeploymentsForMachineSet returns a list of MachineDeployments that could potentially match a MachineSet.
 func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms *clusterv1.MachineSet) []*clusterv1.MachineDeployment {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling getMachineDeploymentsForMachineSet(ctx context.Context, ms *clusterv1.MachineSet)  for MachineDeploymentReconciler")
 	if len(ms.Labels) == 0 {
 		log.V(2).Info("No MachineDeployments found for MachineSet because it has no labels", "machineset", ms.Name)
 		return nil
@@ -302,7 +307,7 @@ func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ctx con
 
 		deployments = append(deployments, &dList.Items[idx])
 	}
-
+	log.Info("TrackerLog: Finished getMachineDeploymentsForMachineSet(ctx context.Context, ms *clusterv1.MachineSet)  for MachineDeploymentReconciler")
 	return deployments
 }
 

@@ -41,6 +41,7 @@ import (
 )
 
 func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
+
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
@@ -65,7 +66,7 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
 func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) for ClusterReconciler")
 	if err := utilconversion.ConvertReferenceAPIContract(ctx, r.Client, r.restConfig, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
@@ -129,14 +130,14 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
 	}
-
+	log.Info("TrackerLog: Finished reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) for ClusterReconciler")
 	return external.ReconcileOutput{Result: obj}, nil
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
 func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	if cluster.Spec.InfrastructureRef == nil {
 		return ctrl.Result{}, nil
 	}
@@ -192,12 +193,14 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
-
+	log.Info("TrackerLog: Finished reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return ctrl.Result{}, nil
 }
 
 // reconcileControlPlane reconciles the Spec.ControlPlaneRef object on a Cluster.
 func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("TrackerLog: Calling reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	if cluster.Spec.ControlPlaneRef == nil {
 		return ctrl.Result{}, nil
 	}
@@ -248,13 +251,13 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 			conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
 		}
 	}
-
+	log.Info("TrackerLog: Finished reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return ctrl.Result{}, nil
 }
 
 func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	log.Info("TrackerLog: Calling reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		return ctrl.Result{}, nil
 	}
@@ -279,6 +282,6 @@ func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *cl
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
 	}
-
+	log.Info("TrackerLog: Finished reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) for ClusterReconciler")
 	return ctrl.Result{}, nil
 }
